@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+ASDF_INSTALL_TYPE=${ASDF_INSTALL_TYPE:-version  }
+[ -n "$ASDF_INSTALL_VERSION" ] || (>&2 echo 'Missing ASDF_INSTALL_VERSION' && exit 1)
+[ -n "$ASDF_INSTALL_PATH" ] || (>&2 echo 'Missing ASDF_INSTALL_PATH' && exit 1)
+
+readonly TMP_DIR="$(mktemp -d -t "asdf_protoc_XXXX")"
+trap 'rm -rf "${TMP_DIR?}"' EXIT
+
+get_platform() {
+  local os=$(uname)
+  if [[ "${os}" == "Darwin" ]]; then
+    echo "osx"
+  elif [[ "${os}" == "Linux" ]]; then
+    echo "linux"
+  else
+    >&2 echo "unsupported os: ${os}" && exit 1
+  fi
+}
+
+install_protoc() {
+  local install_type=$1
+  local version=$2
+  local install_path=$3
+
+
+  mkdir -p "${install_path}"
+
+  local base_url="https://github.com/protocolbuffers/protobuf/releases/download"
+  local url="${base_url}/v${version}/protoc-${version}-$(get_platform)-$(uname -m).zip"
+  local download_path="${TMP_DIR}/protoc.zip"
+
+  echo "Downloading ${url}"
+  curl -fsSL "${url}" -o "${download_path}"
+
+  unzip -qq "${download_path}" -d "${install_path}"
+}
+
+install_protoc $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
