@@ -20,16 +20,26 @@ get_platform() {
   fi
 }
 
+get_architecture() {
+  local arch=$(uname -m)
+
+  # Apple M1 architecture (arm64) doesn't have binaries, so we install the x86_64 version
+  if [[ "$(get_platform)" == "osx" && "${arch}" == "arm64" ]]; then
+    arch="x86_64"
+  fi
+  
+  echo "${arch}"
+}
+
 install_protoc() {
   local install_type=$1
   local version=$2
   local install_path=$3
 
-
   mkdir -p "${install_path}"
 
   local base_url="https://github.com/protocolbuffers/protobuf/releases/download"
-  local url="${base_url}/v${version}/protoc-${version}-$(get_platform)-$(uname -m).zip"
+  local url="${base_url}/v${version}/protoc-${version}-$(get_platform)-$(get_architecture).zip"
   local download_path="${TMP_DIR}/protoc.zip"
 
   echo "Downloading ${url}"
