@@ -9,45 +9,52 @@ ASDF_INSTALL_TYPE=${ASDF_INSTALL_TYPE:-version  }
 readonly TMP_DIR="$(mktemp -d -t "asdf_protoc_XXXX")"
 trap 'rm -rf "${TMP_DIR?}"' EXIT
 
+get_architecture() {
+    local arch=$(uname -m)
+    
+    # Apple M1 architecture (arm64) doesn't have binaries, so we install the x86_64 version
+    if [[ "$(get_platform)" == "osx" && "${arch}" == "arm64" ]]; then
+        rosetta_alert
+        arch="x86_64"
+    fi
+    
+    echo "${arch}"
+}
+
 get_platform() {
-  local os=$(uname)
-  if [[ "${os}" == "Darwin" ]]; then
-    echo "osx"
-  elif [[ "${os}" == "Linux" ]]; then
-    echo "linux"
-  else
-    >&2 echo "unsupported os: ${os}" && exit 1
-  fi
+    local os=$(uname)
+    if [[ "${os}" == "Darwin" ]]; then
+        echo "osx"
+        elif [[ "${os}" == "Linux" ]]; then
+        echo "linux"
+    else
+        >&2 echo "unsupported os: ${os}" && exit 1
+    fi
 }
 
 rosetta_alert() {
-  if [[ "`pkgutil --files com.apple.pkg.RosettaUpdateAuto`" == "" ]]; then 
-    echo 'warn: rosetta not installed!!!'
-    echo 'run:'
-    echo '> softwareupdate --install-rosetta'
-  fi
+    if [[ "`pkgutil --files com.apple.pkg.RosettaUpdateAuto`" == "" ]]; then
+        echo 'warn: rosetta not installed!!!'
+        echo 'run:'
+        echo '> softwareupdate --install-rosetta'
+    fi
 }
 
 install_protoc() {
-  local install_type=$1
-  local version=$2
-  local install_path=$3
-
-  if [ "$platform" == "osx" ] && [ "$arch" == "arm64" ]; then
-    rosetta_alert
-    arch=x86_64
-  fi
-
-  mkdir -p "${install_path}"
-
-  local base_url="https://github.com/protocolbuffers/protobuf/releases/download"
-  local url="${base_url}/v${version}/protoc-${version}-$(get_platform)-$(uname -m).zip"
-  local download_path="${TMP_DIR}/protoc.zip"
-
-  echo "Downloading ${url}"
-  curl -fsSL "${url}" -o "${download_path}"
-
-  unzip -qq "${download_path}" -d "${install_path}"
+    local install_type=$1
+    local version=$2
+    local install_path=$3
+    
+    mkdir -p "${install_path}"
+    
+    local base_url="https://github.com/protocolbuffers/protobuf/releases/download"
+    local url="${base_url}/v${version}/protoc-${version}-$(get_platform)-$(get_architecture).zip"
+    local download_path="${TMP_DIR}/protoc.zip"
+    
+    echo "Downloading ${url}"
+    curl -fsSL "${url}" -o "${download_path}"
+    
+    unzip -qq "${download_path}" -d "${install_path}"
 }
 
 install_protoc $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
