@@ -22,7 +22,7 @@ get_platform() {
 
 get_arch() {
   local os=$(uname)
-  local arch=$(uname -m)
+  local arch=${ASDF_PROTOC_OVERWRITE_ARCH:-"$(uname -m)"}
   # On ARM Macs, uname -m returns "arm64", but in protoc releases this architecture is called "aarch_64"
   if [[ "${os}" == "Darwin" && "${arch}" == "arm64" ]]; then
     echo "aarch_64"
